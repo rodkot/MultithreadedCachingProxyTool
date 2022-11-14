@@ -4,70 +4,109 @@
 
 #include <iostream>
 #include <csignal>
-#include <complex.h>
 #include "PollScheduler.h"
 #include "client/Client.h"
-#include "connection/Request.h"
-#include "sys/socket.h"
 #include "server/ServerScheduler.h"
 
 
-//
-//PollScheduler::PollScheduler(int fd_server) {
-//    polls = (pollfd *) calloc(1, sizeof(pollfd));
-//    polls[0].fd = fd_server;
-//    polls[0].events = POLLIN;
-//}
+
 PollScheduler::PollScheduler(ConnectionScheduler &connectionScheduler, ClientScheduler &clientScheduler1,
                              CashScheduler &cashScheduler)
         : connectionScheduler(connectionScheduler), clientScheduler(clientScheduler1), cashScheduler(cashScheduler) {
-    polls = (pollfd *) realloc(polls, (1 + 2 * MAX_CLIENT) * sizeof(pollfd));
-    p_polls = (pollfd **) realloc(p_polls, (1 + 2 * MAX_CLIENT) * sizeof(pollfd *));
+    polls = (pollfd *) realloc(polls, (2 + 2 * MAX_CLIENT) * sizeof(pollfd));
+    p_polls = (pollfd **) realloc(p_polls, (2 + 2 * MAX_CLIENT) * sizeof(pollfd *));
+
 }
 
 int PollScheduler::builder() {
     polls[0] = *connection;
     p_polls[0] = connection;
+
+    polls[1] = *cash;
+    p_polls[1] = cash;
+
     for (auto iter_client = clients.begin();
          iter_client != clients.end();) {
+        Client *client = *iter_client;
 
-        if ((*iter_client)->status == STOP) {
-            delete (*iter_client)->server;
-            //(*iter_client)->server->status = DELETE;
-            if (((*iter_client)->response->type != CASHED_RESPONSE)
-                && ((*iter_client)->response->type != DURING_CASH_RESPONSE)) {
-                free((*iter_client)->response);
-            } else
-                cashScheduler.disconnect_to_record((*iter_client)->request);
+        if (client->status == PAUSE_CLIENT) {
+            if (client->response->len_response - client->current_recv_response > 0 ||
+                client->response->status == END) {
+                client->status = ACTIVE_CLIENT;
+                client->receiving_mode_enable();
+                spdlog::warn("responseClientHandler ENABLE client {}", client->get_name_client());
+            }
+            ++iter_client;
+            continue;
+        }
+        if (client->status != ACTIVE_CLIENT) {
+            close(client->fd);
 
-            delete (*iter_client);
-            iter_client = clients.erase(iter_client);
+            if (client->response != nullptr) {
+                if ((client->response->type == CASHED_RESPONSE)
+                    || (client->response->type == DURING_CASH_RESPONSE)) {
+                    cashScheduler.disconnect_to_record((*iter_client)->request);
+                }
+                if (client->response->type == NO_CASH_RESPONSE) {
+                    delete client->response;
+                }
+            }
+
+            if (client->status == STOP_SUCCESS_CLIENT) {
+                spdlog::warn("PollScheduler STOP_SUCCESS_CLIENT disconnect client {}",
+                             (*iter_client)->get_name_client());
+                delete client;
+                iter_client = clients.erase(iter_client);
+
+            } else if (client->status == STOP_FAILED_CLIENT) {
+                spdlog::error("PollScheduler STOP_FAILED_CLIENT disconnect client {}",
+                              (*iter_client)->get_name_client());
+                delete client;
+                iter_client = clients.erase(iter_client);
+
+            }
         } else {
             ++iter_client;
         }
+
+
     }
 
     for (int i = 0; i < clients.size(); ++i) {
-        (polls[i + 1]) = *(clients[i]->poll);
-        (p_polls[i + 1]) = (clients[i]->poll);
+        Client *client = clients[i];
+        (polls[i + 2]) = *(client->poll);
+        (p_polls[i + 2]) = (client->poll);
     }
-
 
     for (auto iter_server = servers.begin();
          iter_server != servers.end();) {
-
-        if ((*iter_server)->status == STOP) {
-            close((*iter_server)->fd);
-            // delete (*iter_server);
-            iter_server = servers.erase(iter_server);
+        Server *server = *iter_server;
+        if (server->status != ACTIVE_SERVER) {
+            close(server->fd);
+            if (server->response->type == DURING_CASH_RESPONSE
+                || server->response->type == CASHED_RESPONSE) {
+                cashScheduler.disconnect_to_record(server->request);
+            }
+            if (server->status == STOP_FAILED_SERVER) {
+                spdlog::error("PollScheduler STOP_FAILED_SERVER disconnect server {}",
+                              server->get_name_server());
+                server->response->status = FAIL;
+                delete server;
+                iter_server = servers.erase(iter_server);
+            } else if (server->status == STOP_SUCCESS_SERVER) {
+                spdlog::warn("PollScheduler STOP_SUCCESS_SERVER disconnect server {}",
+                             server->get_name_server());
+                delete server;
+                iter_server = servers.erase(iter_server);
+            }
         } else {
             ++iter_server;
         }
     }
 
     for (int i = 0; i < servers.size(); ++i) {
-        (polls[i + clients.size() + 1]) = *(servers[i]->poll);
-        (p_polls[i + clients.size() + 1]) = (servers[i]->poll);
+        (polls[i + clients.size() + 2]) = *(servers[i]->poll);
+        (p_polls[i + clients.size() + 2]) = (servers[i]->poll);
     }
     return 0;
 };
@@ -80,10 +119,13 @@ int PollScheduler::open_connect() {
         }
         default: {
             connection = (pollfd *) calloc(1, sizeof(pollfd));
-            //p_polls = (pollfd **) calloc(1, sizeof(pollfd *));
             connection->fd = socket;
             connection->events = POLLIN;
-            //p_polls = &(polls[0]);
+
+            cash = (pollfd *) calloc(1, sizeof(pollfd));
+            cash->fd = cashScheduler.cash_event_fd[0];
+            cash->events = POLLIN;
+
             return OPEN_CONNECTION_SUCCESS;
         }
     }
@@ -92,145 +134,140 @@ int PollScheduler::open_connect() {
 
 int PollScheduler::addClientConnectionHandler() {
     auto *new_client = new Client();
-    //auto *addr = (sockaddr *) calloc(1, sizeof(sockaddr));
-    //int socket_connect = connectionScheduler.fresh_connection(new_client);
+
     switch (connectionScheduler.fresh_connection(new_client)) {
-        case CLIENT_CONNECTION_SUCCESS:
-        {
+        case CLIENT_CONNECTION_SUCCESS: {
             new_client->asking_mode_enable();
-            spdlog::info("connect success client {}",new_client->get_name_client());
+            spdlog::info("connect success #{} client {}", clients.size() + 1, new_client->get_name_client());
             add_client(new_client);
             return CLIENT_CONNECTION_SUCCESS;
         }
         case CLIENT_CONNECTION_FAILED:
+            spdlog::error("connect error client {}", new_client->get_name_client());
             return CLIENT_CONNECTION_FAILED;
     }
 }
 
 int PollScheduler::addServerConnectionHandler(Client *client) {
 
-    /*
-     * Проверка корректности запроса
-     * Если некорректный, то создание response на основе сущ-ющих ответов ERROR
-     * И запуск ответа к клиенту
-     */
     switch (ClientScheduler::check_valid_request(client->request)) {
         case NO_SUPPORT_METHOD: {
-            std::cout << "NO_SUPPORT_METHOD" << std::endl;
+            spdlog::error("addServerConnectionHandler NO_SUPPORT_METHOD request client {}", client->get_name_client());
+            client->response = cashScheduler.response_405;
+            client->receiving_mode_enable();
             //http 405
+            return NO_SUPPORT_METHOD;
         }
-            break;
         case NO_SUPPORT_VERSION_HTTP: {
-            std::cout << "NO_SUPPORT_VERSION_HTTP" << std::endl;
+            spdlog::error("addServerConnectionHandler NO_SUPPORT_VERSION_HTTP request client {}",
+                          client->get_name_client());
+            client->response = cashScheduler.response_505;
+            client->receiving_mode_enable();
             // http 505
+            return NO_SUPPORT_VERSION_HTTP;
         }
-            break;
         case ERROR_RESOURCE: {
-            std::cout << "ERROR_RESOURCE" << std::endl;
+            spdlog::error("addServerConnectionHandler ERROR_RESOURCE request client {}", client->get_name_client());
+            client->response = cashScheduler.response_409;
+            client->receiving_mode_enable();
             // http 409
+            return ERROR_RESOURCE;
         }
-            break;
         case VALID_REQUEST: {
+            spdlog::info("addServerConnectionHandler VALID_REQUEST request client {}", client->get_name_client());
             switch (cashScheduler.connect_to_record(client->request, &(client->response))) {
                 case HAVE_RECORD:
+                    spdlog::info("addServerConnectionHandler HAVE_RECORD cache for request client {}",
+                                 client->get_name_client());
                     client->receiving_mode_enable();
-                    break;
+                    return HAVE_RECORD;
                 case NO_RECORD: {
-                    Server *server = new Server(client);
+                    spdlog::info("addServerConnectionHandler NO_RECORD cache for request client {}",
+                                 client->get_name_client());
+                    auto *server = new Server(client);
                     client->server = server;
                     switch (ServerScheduler::connect_to_server(server)) {
                         case CONNECTION_SERVER_FAILED: {
-                            // http 409
+                            spdlog::error("addServerConnectionHandler CONNECTION_SERVER_FAILED for request client {}",
+                                          client->get_name_client());
+                            client->response = cashScheduler.response_409;
+                            client->receiving_mode_enable();
+                            return CONNECTION_SERVER_FAILED;
                         }
-                            break;
                         case CONNECTION_SERVER_SUCCESS: {
+                            spdlog::info("addServerConnectionHandler CONNECTION_SERVER_SUCCESS for request client {}",
+                                         client->get_name_client());
                             server->request_mode_enable();
                             add_server(server);
+                            return CONNECTION_SERVER_SUCCESS;
                         }
-                            break;
-
                     }
                 }
-                    break;
             }
-
-
-            std::cout << "VALID_REQUEST" << std::endl;
         }
-            break;
     }
-    /* Если корректный, то проверка на сущ-ние такой записи в кеш
-     * Если есть, то создание response на основе сущ-ющих кеш
-     * И запуск ответа к клиенту
-     */
-
-    /* Если нет, то начинается поиск ip домена
-    * Если нет такого домена, то создание response на основе сущ-ющих ответов ERROR
-    * И запуск ответа к клиенту
-    */
-
-    /* Если есть, то создание сокета
-     * Создание Response
-     * И запуск отправки запроса
-     */
-
 }
-
-
-int PollScheduler::check_valid_request(Request req) {
-    return -1;
-}
-
 
 int PollScheduler::requestClientHandler(Client *client) {
-    int res = ClientScheduler::forming_request(client);
-    if (res == 0) {
-        client->asking_mode_disable();
-        client->request->resolve();
-        addServerConnectionHandler(client);
+    switch (ClientScheduler::forming_request(client)) {
+        case REQUEST_RECV_SUCCESS:
+            spdlog::info("requestClientHandler REQUEST_RECV_SUCCESS client {}", client->get_name_client());
+            client->asking_mode_disable();
+            client->request->resolve();
+            addServerConnectionHandler(client);
+            return REQUEST_RECV_SUCCESS;
+        case REQUEST_RECV_PROCESS:
+            spdlog::info("requestClientHandler REQUEST_RECV_PROCESS client {}", client->get_name_client());
+            return REQUEST_RECV_PROCESS;
+        case REQUEST_RECV_FAILED:
+            client->asking_mode_disable();
+            client->status = STOP_FAILED_CLIENT;
+            spdlog::error("requestClientHandler REQUEST_RECV_FAILED client {}", client->get_name_client());
+            return REQUEST_RECV_FAILED;
+
     }
-    return res;
 }
 
 int PollScheduler::requestServerHandler(Server *server) {
     switch (ServerScheduler::send_request(server)) {
         case REQUEST_HAS_BEEN_SEND: {
+            spdlog::info("requestServerHandler REQUEST_HAS_BEEN_SEND server {}", server->get_name_server());
             server->request_mode_disable();
             auto *response = new Response();
             server->response = response;
             server->client->response = response;
             server->response_mode_enable();
-
+            return REQUEST_HAS_BEEN_SEND;
         }
-            break;
-        case REQUEST_SEND_WITH_ERROR: {
-
-        }
-            break;
+        case REQUEST_SEND_WITH_ERROR:
+            spdlog::error("requestServerHandler REQUEST_SEND_WITH_ERROR server {}", server->get_name_server());
+            server->request_mode_disable();
+            server->status = STOP_FAILED_SERVER;
+            return REQUEST_SEND_WITH_ERROR;
     }
+}
+
+void PollScheduler::eventCashHandler() {
+    char buf[10];
+    read(cashScheduler.cash_event_fd[0], buf, 10);
+    cashScheduler.clean_unnecessary_cash();
+
+    spdlog::info("PollScheduler eventCashHandler");
 }
 
 int PollScheduler::responseServerHandler(Server *server) {
     switch (ServerScheduler::recv_response(server)) {
         case RESPONSE_RECEIVED: {
-
+            spdlog::info("responseServerHandler RESPONSE_RECEIVED server {}", server->get_name_server());
             switch (server->response->type) {
                 case DURING_CASH_RESPONSE: {
                     cashScheduler.add_record(server->request, server->response);
                 }
-                case NO_CASH_RESPONSE: {
-                    //cashScheduler.add_record(server->request,server->response);
-
-                }
-                case CASHED_RESPONSE: {
-
-                }
             }
-            server->status = STOP;
+            server->status = STOP_SUCCESS_SERVER;
             server->response_mode_disable();
             return RESPONSE_RECEIVED;
         }
-
         case RESPONSE_RECEIVED_HEADER: {
             switch (server->response->code) {
                 case HTTP_CODE_OK:
@@ -244,46 +281,49 @@ int PollScheduler::responseServerHandler(Server *server) {
                     return RESPONSE_RECEIVE_PROCESS;
             }
         }
-            break;
+
         case RESPONSE_RECEIVE_WITH_ERROR: {
-            server->status = STOP;
+            server->status = STOP_FAILED_SERVER;
             server->response_mode_disable();
             return RESPONSE_RECEIVE_WITH_ERROR;
         }
-
     }
 }
 
 int PollScheduler::responseClientHandler(Client *client) {
     switch (ClientScheduler::send_response(client)) {
         case RESPONSE_RECEIVED: {
-            client->status = STOP;
+            spdlog::info("responseClientHandler RESPONSE_RECEIVED client {}", client->get_name_client());
+            client->status = STOP_SUCCESS_CLIENT;
             client->receiving_mode_disable();
             return RESPONSE_RECEIVED;
         }
+        case RESPONSE_PAUSE_RECEIVE: {
+            spdlog::warn("responseClientHandler RESPONSE_PAUSE_RECEIVE client {}", client->get_name_client());
+            client->status = PAUSE_CLIENT;
+            client->receiving_mode_disable();
+            return RESPONSE_PAUSE_RECEIVE;
+        }
         case RESPONSE_RECEIVE_WITH_ERROR: {
-            client->status = STOP;
+            spdlog::error("responseClientHandler RESPONSE_RECEIVE_WITH_ERROR client {}", client->get_name_client());
+            client->status = STOP_FAILED_CLIENT;
             client->receiving_mode_disable();
             return RESPONSE_RECEIVE_WITH_ERROR;
         }
-
     }
-
 }
 
-int PollScheduler::add_client(Client* client) {
+void PollScheduler::add_client(Client *client) {
     clients.push_back(client);
-    return 0;
 }
 
-int PollScheduler::add_server(Server *server) {
+void PollScheduler::add_server(Server *server) {
     servers.push_back(server);
 }
 
 int PollScheduler::executor() {
-    //builder();
-    int res = poll(polls, getCountHandler(), TIME_OUT);
-    switch (res) {
+
+    switch (poll(polls, getCountHandler(), TIME_OUT_POLL)) {
         case 0: {
             return 0;
         }
@@ -295,16 +335,33 @@ int PollScheduler::executor() {
                 *(p_polls[i]) = polls[i];
             }
             if (polls[0].revents == POLLIN) {
-                switch (addClientConnectionHandler()) {
-                    case CONNECTION_SERVER_SUCCESS:
-                        break;
-                    case CONNECTION_SERVER_FAILED:
-                        break;
+                addClientConnectionHandler();
+
+            }
+            if (polls[1].revents & POLLIN) {
+                eventCashHandler();
+            }
+            for (int i = 0; i < servers.size(); ++i) {
+                if ((servers[i]->poll->revents) & POLLHUP) {
+                    spdlog::critical("executor POLLHUP servers {}",servers[i]->get_name_server());
+                }
+                if ((servers[i]->poll->revents & POLLOUT)) {
+                    requestServerHandler(servers[i]);
 
                 }
+                if ((servers[i]->poll->revents) & POLLIN) {
+                    responseServerHandler(servers[i]);
+                }
             }
-
             for (int i = 0; i < clients.size(); ++i) {
+                if ((clients[i]->poll->revents) & POLLHUP) {
+                    spdlog::critical("POLLHUP client");
+                    clients[i]->receiving_mode_disable();
+                    clients[i]->asking_mode_disable();
+                    clients[i]->status = STOP_FAILED_CLIENT;
+                    continue;
+                }
+
                 if (clients[i]->poll->revents & POLLIN) {
                     requestClientHandler(clients[i]);
                 }
@@ -312,19 +369,25 @@ int PollScheduler::executor() {
                     responseClientHandler(clients[i]);
                 }
             }
-            for (int i = 0; i < servers.size(); ++i) {
-                if ((servers[i]->poll->revents & POLLOUT)) {
-                    requestServerHandler(servers[i]);
-                }
-                if ((servers[i]->poll->revents) & POLLIN) {
-                    responseServerHandler(servers[i]);
-                }
-                if ((servers[i]->poll->revents) & POLLHUP) {
-                    std::cout << "Плохо дело ";
-                }
-            }
+
 
         }
     }
     return 0;
 };
+
+void PollScheduler::destroy() {
+    for (int i = 0; i < clients.size(); ++i) {
+        Client *client = clients[i];
+        client->status = STOP_FAILED_CLIENT;
+    }
+    for (int i = 0; i < servers.size(); ++i) {
+        Server *server = servers[i];
+        server->status = STOP_FAILED_SERVER;
+    }
+}
+
+PollScheduler::~PollScheduler() {
+    delete polls;
+    delete p_polls;
+}

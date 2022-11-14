@@ -3,19 +3,27 @@
 //
 
 #include "Request.h"
+#include "../Configuration.h"
 #include <malloc.h>
+#include <signal.h>
 
-Request::Request(){
-    len_buf = BUF_STEP_SIZE;
-    request = (char *)calloc(len_buf, sizeof (char));
+Request::Request() {
+    len_buf = BUF_STEP_SIZE_REQUEST;
+    request = (char *) calloc(len_buf, sizeof(char));
+    if (request == nullptr) {
+        raise(SIGTERM);
+    }
 }
 
-int Request::append_buf() {
-    len_buf += BUF_STEP_SIZE;
-    request = (char *)realloc(request,len_buf*sizeof(char));
+void Request::append_buf() {
+    len_buf += BUF_STEP_SIZE_REQUEST;
+    request = (char *) realloc(request, len_buf * sizeof(char));
+    if (request == nullptr) {
+        raise(SIGTERM);
+    }
 }
 
-int Request::resolve() {
+void Request::resolve() {
     method = request;
     for (; request[method_len] != ' '; ++method_len) {}
     resource = method + method_len + 1;
@@ -34,7 +42,11 @@ int Request::resolve() {
             break;
         }
     }
-    for (;host[0]==' ';host++) {}
-    for (host_len = 0; host[host_len]!=' ' && host[host_len]!='\r' ; host_len++) {}
-    return 0;
+    for (; host[0] == ' '; host++) {}
+    for (host_len = 0; host[host_len] != ' ' && host[host_len] != '\r'; host_len++) {}
+}
+
+Request::~Request() {
+    if (request != nullptr)
+        free(request);
 }

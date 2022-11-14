@@ -4,7 +4,7 @@
 
 #ifndef PROXY_REQUEST_H
 #define PROXY_REQUEST_H
-#define BUF_STEP_SIZE 100
+
 
 class Request {
 public:
@@ -26,10 +26,11 @@ public:
 
     explicit Request();
 
-    int resolve();
+    void resolve();
 
-    int append_buf();
+    void append_buf();
 
+    ~Request();
 
 };
 

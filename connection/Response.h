@@ -5,14 +5,16 @@
 #ifndef PROXY_RESPONSE_H
 #define PROXY_RESPONSE_H
 
+
 #define DURING_CASH_RESPONSE 10
 #define CASHED_RESPONSE 11
 #define NO_CASH_RESPONSE 12
 
-#define BUF_STEP_SIZE_RESPONSE 100
+
 
 #define HEADERS 1
 #define BODY 2
+#define FAIL -1
 #define END 3
 
 
@@ -32,8 +34,9 @@ public:
     long len_buf = 0;
 
     Response();
+    Response(char* res, long res_len,int status,int type);
 
-    int append_buf();
+    void append_buf();
     void resolve();
 };
 

@@ -1,71 +1,58 @@
 #include <iostream>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/poll.h>
 #include <unistd.h>
 #include "PollScheduler.h"
 #include "connection/ConnectionScheduler.h"
 #include "client/ClientScheduler.h"
 #include <spdlog/spdlog.h>
+#include <signal.h>
+
+bool active = true;
+ConnectionScheduler connectionScheduler("127.0.0.1", 8083);
+ClientScheduler clientScheduler;
+CashScheduler cashScheduler;
+PollScheduler pollScheduler(connectionScheduler, clientScheduler, cashScheduler);
+
+void eventCashHandler(int signo, siginfo_t *info, void *context) {
+    if (signo == SIGALRM) {
+        write(cashScheduler.cash_event_fd[1], "hello", 5);
+        alarm(30);
+    }
+    if (signo == SIGTERM) {
+        spdlog::critical("STOP PROXY {}",errno);
+        active = false;
+        pollScheduler.destroy();
+        pollScheduler.builder();
+        cashScheduler.destroy();
+        connectionScheduler.disconnect();
+        exit(1);
+    }
+}
 
 int main() {
-
-
-    ConnectionScheduler connectionScheduler("127.0.0.1", 8081);
-    ClientScheduler clientScheduler;
-    CashScheduler cashScheduler;
-    PollScheduler pollScheduler(connectionScheduler, clientScheduler, cashScheduler);
-
     switch (pollScheduler.open_connect()) {
         case OPEN_CONNECTION_SUCCESS: {
             spdlog::info("PROXY START");
-            while (true) {
+            alarm(2);
+
+            struct sigaction act = {0};
+
+            act.sa_flags = SIGINT;
+            act.sa_sigaction = &(eventCashHandler);
+            if (sigaction(SIGALRM, &act, NULL) == -1) {
+                perror("sigaction");
+                exit(EXIT_FAILURE);
+            }
+            if (sigaction(SIGTERM, &act, NULL) == -1) {
+                perror("sigaction");
+                exit(EXIT_FAILURE);
+            }
+            while (active) {
                 pollScheduler.builder();
                 pollScheduler.executor();
             }
         }
         case OPEN_CONNECTION_FAILED: {
             spdlog::critical("PROXY FAILED START");
-            //std::cout<<termcolor::red<<"OPEN_CONNECTION_FAILED"<<std::endl;
         }
     }
-
-
-
-
-
-
-
-
-//    struct pollfd* polls = nullptr;
-//    polls= static_cast<pollfd *>(calloc(1, sizeof(struct pollfd)));
-//
-//    int fd = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-//    polls[0].fd=fd;
-//    polls[0].events=POLLIN;
-//    struct sockaddr_in mysock{};
-//
-//    mysock.sin_family = AF_INET;
-//    mysock.sin_port = htons(8080);
-//    mysock.sin_addr.s_addr = inet_addr("127.0.0.1");
-//
-//    if(bind(fd,(sockaddr *)(&mysock), sizeof (mysock))<0){
-//        perror("error");
-//    }
-//    if(listen(fd,10)){
-//        perror("listen connect");
-//    }
-//    if (poll(polls,1,-1)>0  ){
-//        char buf[100];
-//        int d = read(fd,buf,100);
-//        perror("hah");
-//    } else
-//    {
-//        perror("error_connect");
-//    }
-//
-//    return 0;
-
-
 }

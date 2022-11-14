@@ -2,18 +2,24 @@
 // Created by rodion on 03.11.22.
 //
 
-#include <malloc.h>
-#include <unistd.h>
 #include "Server.h"
 #include "../client/Client.h"
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-//Server::Server(Request *req):request(req) {}
 Server::Server(Client *c):request(c->request),client(c){}
 void Server::request_mode_enable() const {
     if (poll!= nullptr){
         if (!(poll->events & POLLOUT))
             poll->events ^= POLLOUT;
     }
+}
+
+std::string Server::get_name_server() const {
+    char * ip = inet_ntoa(((struct sockaddr_in *)addr)->sin_addr);
+
+    return std::string (ip)+":"+std::to_string(ntohs(((struct sockaddr_in*)(addr)) ->sin_port));
+
 }
 
 void Server::request_mode_disable() const {
@@ -37,9 +43,8 @@ void Server::response_mode_disable() const {
 }
 
 Server::~Server() {
-    //close(fd);
-    //if(poll!= nullptr)
-     //   free(poll);
+    if(poll!= nullptr)
+        free(poll);
 }
 
 

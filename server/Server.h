@@ -6,28 +6,34 @@
 #define PROXY_SERVER_H
 
 #include <poll.h>
+#include <string>
+#include <sys/socket.h>
 #include "../connection/Request.h"
 #include "../connection/Response.h"
 
-#define ACTIVE 0
-#define STOP -1
-#define DELETE -2
+
+#define ACTIVE_SERVER 1
+#define STOP_SUCCESS_SERVER 2
+#define STOP_FAILED_SERVER -2
 
 class Client;
 
 class Server {
 public:
     int fd{};
-    int status = ACTIVE;
+    int status = ACTIVE_SERVER;
     pollfd *poll = nullptr;
     Request *request = nullptr;
     Response *response = nullptr;
     Client *client = nullptr;
 
+    sockaddr *addr = nullptr;
     int current_send_reques = 0;
-   // long current_recv_response = 0;
+
 public:
     explicit Server(Client *c);
+
+    std::string get_name_server() const;
 
     void request_mode_enable() const;
 

@@ -16,8 +16,8 @@
 #include "server/Server.h"
 #include "cash/CashScheduler.h"
 #include <spdlog/spdlog.h>
-
-#define TIME_OUT -1
+#include <signal.h>
+#include "Configuration.h"
 
 
 class PollScheduler {
@@ -28,8 +28,10 @@ private:
 
     std::vector<Client *> clients = {};
     std::vector<Server *> servers = {};
+
     pollfd *polls = nullptr;
     pollfd *connection = nullptr;
+    pollfd *cash = nullptr;
     pollfd **p_polls{};
 
 public:
@@ -41,12 +43,9 @@ public:
 
     int open_connect();
 
-    int add_client(Client* client);
+    void add_client(Client *client);
 
-    int add_server(Server *server);
-
-    int check_valid_request(Request req);
-
+    void add_server(Server *server);
 
     int addClientConnectionHandler();
 
@@ -54,16 +53,21 @@ public:
 
     int requestClientHandler(Client *client);
 
-    int requestServerHandler(Server *server);
+    static int requestServerHandler(Server *server);
 
     int responseServerHandler(Server *server);
 
     static int responseClientHandler(Client *client);
 
+    void eventCashHandler();
+
+    void destroy();
+
     int getCountHandler() {
-        return 1 + clients.size() + servers.size();
+        return 2l + clients.size() + servers.size();
     }
 
+    ~PollScheduler();
 };
 
 
