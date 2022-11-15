@@ -33,16 +33,19 @@ int ConnectionScheduler::listen_socket() {
 }
 
 int ConnectionScheduler::fresh_connection(Client *client) const {
-    client->addr = (sockaddr *) calloc(1, sizeof(sockaddr));
-    socklen_t add_size = sizeof(*(client->addr));
-    int client_fd = accept(fd_connect, client->addr, &add_size);
+    client->setAddr((sockaddr *) calloc(1, sizeof(sockaddr)));
+    socklen_t add_size = sizeof(*(client->getAddr()));
+    int client_fd = accept(fd_connect, client->getAddr(), &add_size);
     if (client_fd < 0) {
         return CLIENT_CONNECTION_FAILED;
     }
-    client->fd = client_fd;
-    client->poll = (pollfd *) calloc(1, sizeof(pollfd));
-    client->poll->fd = client_fd;
-    client->poll->events = POLLHUP;
+    client->setFd(client_fd);
+    auto* p = (pollfd *) calloc(1, sizeof(pollfd));
+
+    p->fd = client_fd;
+    p->events = POLLHUP;
+
+    client->setPoll(p);
 
     return CLIENT_CONNECTION_SUCCESS;
 }

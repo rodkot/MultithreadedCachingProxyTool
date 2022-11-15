@@ -24,7 +24,7 @@ public:
     Response *response_409;
     std::unordered_map<std::string, CashRecord> cash;
 
-    int connect_to_record(Request *request, Response **pResponse);
+    int connect_to_record(Request *request, Client *client);
 
     void add_record(Request *request, Response *response);
 

@@ -47,3 +47,67 @@ Client::~Client() {
     }
 
 }
+
+int Client::getFd() const {
+    return fd;
+}
+
+void Client::setFd(int fd) {
+    Client::fd = fd;
+}
+
+int Client::getStatus() const {
+    return status;
+}
+
+void Client::setStatus(int status) {
+    Client::status = status;
+}
+
+sockaddr *Client::getAddr() const {
+    return addr;
+}
+
+void Client::setAddr(sockaddr *addr) {
+    Client::addr = addr;
+}
+
+Server *Client::getServer() const {
+    return server;
+}
+
+void Client::setServer(Server *server) {
+    Client::server = server;
+}
+
+Request *Client::getRequest() const {
+    return request;
+}
+
+void Client::setRequest(Request *request) {
+    Client::request = request;
+}
+
+Response *Client::getResponse() const {
+    return response;
+}
+
+void Client::setResponse(Response *response) {
+    Client::response = response;
+}
+
+pollfd *Client::getPoll() const {
+    return poll;
+}
+
+void Client::setPoll(pollfd *poll) {
+    Client::poll = poll;
+}
+
+long Client::getCurrentRecvResponse() const {
+    return current_recv_response;
+}
+
+void Client::setCurrentRecvResponse(long currentRecvResponse) {
+    current_recv_response = currentRecvResponse;
+}

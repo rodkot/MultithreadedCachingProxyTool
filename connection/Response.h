@@ -22,7 +22,7 @@
 #define HTTP_CODE_NO_OK 201
 
 class Response {
-public:
+private:
     int type;
 
     char *response;
@@ -33,11 +33,36 @@ public:
 
     long len_buf = 0;
 
+public:
     Response();
     Response(char* res, long res_len,int status,int type);
 
     void append_buf();
     void resolve();
+
+    int getType() const;
+
+    void setType(int type);
+
+    char *getResponse() const;
+
+    void setResponse(char *response);
+
+    long getLenResponse() const;
+
+    void setLenResponse(long lenResponse);
+
+    int getCode() const;
+
+    void setCode(int code);
+
+    int getStatus() const;
+
+    void setStatus(int status);
+
+    long getLenBuf() const;
+
+    void setLenBuf(long lenBuf);
 };
 
 

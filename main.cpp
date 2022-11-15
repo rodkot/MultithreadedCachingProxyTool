@@ -5,9 +5,10 @@
 #include "client/ClientScheduler.h"
 #include <spdlog/spdlog.h>
 #include <signal.h>
+#include "Configuration.h"
 
 bool active = true;
-ConnectionScheduler connectionScheduler("127.0.0.1", 8083);
+ConnectionScheduler connectionScheduler("127.0.0.1", 8084);
 ClientScheduler clientScheduler;
 CashScheduler cashScheduler;
 PollScheduler pollScheduler(connectionScheduler, clientScheduler, cashScheduler);
@@ -15,7 +16,7 @@ PollScheduler pollScheduler(connectionScheduler, clientScheduler, cashScheduler)
 void eventCashHandler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGALRM) {
         write(cashScheduler.cash_event_fd[1], "hello", 5);
-        alarm(30);
+        alarm(PERIOD_CASH_EVENT);
     }
     if (signo == SIGTERM) {
         spdlog::critical("STOP PROXY {}",errno);
@@ -24,7 +25,7 @@ void eventCashHandler(int signo, siginfo_t *info, void *context) {
         pollScheduler.builder();
         cashScheduler.destroy();
         connectionScheduler.disconnect();
-        exit(1);
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -32,7 +33,7 @@ int main() {
     switch (pollScheduler.open_connect()) {
         case OPEN_CONNECTION_SUCCESS: {
             spdlog::info("PROXY START");
-            alarm(2);
+            alarm(PERIOD_CASH_EVENT);
 
             struct sigaction act = {0};
 

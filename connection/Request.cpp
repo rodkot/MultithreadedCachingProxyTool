@@ -50,3 +50,91 @@ Request::~Request() {
     if (request != nullptr)
         free(request);
 }
+
+char *Request::getRequest() const {
+    return request;
+}
+
+void Request::setRequest(char *request) {
+    Request::request = request;
+}
+
+long Request::getReqLen() const {
+    return req_len;
+}
+
+void Request::setReqLen(long reqLen) {
+    req_len = reqLen;
+}
+
+long Request::getLenBuf() const {
+    return len_buf;
+}
+
+void Request::setLenBuf(long lenBuf) {
+    len_buf = lenBuf;
+}
+
+char *Request::getMethod() const {
+    return method;
+}
+
+void Request::setMethod(char *method) {
+    Request::method = method;
+}
+
+long Request::getMethodLen() const {
+    return method_len;
+}
+
+void Request::setMethodLen(long methodLen) {
+    method_len = methodLen;
+}
+
+char *Request::getResource() const {
+    return resource;
+}
+
+void Request::setResource(char *resource) {
+    Request::resource = resource;
+}
+
+long Request::getResourceLen() const {
+    return resource_len;
+}
+
+void Request::setResourceLen(long resourceLen) {
+    resource_len = resourceLen;
+}
+
+char *Request::getVersionHttp() const {
+    return version_http;
+}
+
+void Request::setVersionHttp(char *versionHttp) {
+    version_http = versionHttp;
+}
+
+long Request::getVersionHttpLen() const {
+    return version_http_len;
+}
+
+void Request::setVersionHttpLen(long versionHttpLen) {
+    version_http_len = versionHttpLen;
+}
+
+char *Request::getHost() const {
+    return host;
+}
+
+void Request::setHost(char *host) {
+    Request::host = host;
+}
+
+long Request::getHostLen() const {
+    return host_len;
+}
+
+void Request::setHostLen(long hostLen) {
+    host_len = hostLen;
+}

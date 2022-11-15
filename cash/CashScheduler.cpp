@@ -34,7 +34,7 @@ void CashScheduler::clean_unnecessary_cash() {
             spdlog::warn("CashScheduler clean_unnecessary_cash remove cash {}", resource);
             delete record.response;
             iter_cash = cash.erase(iter_cash);
-        } else if (record.response->status == FAIL) {
+        } else if (record.response->getStatus() == FAIL) {
             spdlog::error("CashScheduler clean_unnecessary_cash remove FAIL cash {}", resource);
             delete record.response;
             iter_cash = cash.erase(iter_cash);
@@ -49,23 +49,23 @@ void CashScheduler::clean_unnecessary_cash() {
 }
 
 void CashScheduler::add_record(Request *request, Response *response) {
-    response->type = CASHED_RESPONSE;
+    response->setType(CASHED_RESPONSE);
     CashRecord cashRecord(response);
-    std::string host(request->host, request->host_len);
-    std::string resource(request->resource, request->resource_len);
+    std::string host(request->getHost(), request->getHostLen());
+    std::string resource(request->getResource(), request->getResourceLen());
     std::string full = host + resource;
     cashRecord.connect_client();
     spdlog::info("CashScheduler CASHED_RESPONSE {}", full);
     cash.insert(std::pair(full, cashRecord));
 }
 
-int CashScheduler::connect_to_record(Request *request, Response **pResponse) {
-    std::string host(request->host, request->host_len);
-    std::string resource(request->resource, request->resource_len);
+int CashScheduler::connect_to_record(Request *request,Client* client) {
+    std::string host(request->getHost(), request->getHostLen());
+    std::string resource(request->getResource(), request->getResourceLen());
     std::string full = host + resource;
     auto iter_record = cash.find(full);
-    if (iter_record != cash.end() && iter_record->second.response->status != FAIL) {
-        *pResponse = (*iter_record).second.response;
+    if (iter_record != cash.end() && iter_record->second.response->getStatus() != FAIL) {
+        client->setResponse((*iter_record).second.response);
         (*iter_record).second.connect_client();
         return HAVE_RECORD;
     } else {
@@ -74,8 +74,8 @@ int CashScheduler::connect_to_record(Request *request, Response **pResponse) {
 }
 
 void CashScheduler::disconnect_to_record(Request *request) {
-    std::string host(request->host, request->host_len);
-    std::string resource(request->resource, request->resource_len);
+    std::string host(request->getHost(), request->getHostLen());
+    std::string resource(request->getResource(), request->getResourceLen());
     std::string full = host + resource;
     auto iter_record = cash.find(full);
     if (iter_record != cash.end()) {

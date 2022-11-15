@@ -16,7 +16,7 @@
 int ServerScheduler::connect_to_server(Server *server) {
     struct addrinfo hints, *res, *result;
 
-    char *url = server->request->host;
+    char *url = server->getRequest()->getHost();
 
     int port = 80;
     char host_name[100];
@@ -40,11 +40,11 @@ int ServerScheduler::connect_to_server(Server *server) {
 
     while (res != nullptr) {
         if (connect(fd, result->ai_addr, result->ai_addrlen) == 0) {
-            server->fd = fd;
-            server->addr = result->ai_addr;
-            server->poll = (pollfd *) calloc(1, sizeof(pollfd));
-            server->poll->fd = fd;
-            server->poll->events = POLLHUP | POLLERR;
+            server->setFd(fd);
+            server->setAddr(result->ai_addr);
+            server->setPoll((pollfd *) calloc(1, sizeof(pollfd)));
+            server->getPoll()->fd = fd;
+            server->getPoll()->events = POLLHUP | POLLERR;
             return CONNECTION_SERVER_SUCCESS;
         }
         res = res->ai_next;
@@ -54,23 +54,23 @@ int ServerScheduler::connect_to_server(Server *server) {
 }
 
 int ServerScheduler::send_request(Server *server) {
-    Request *request = server->request;
-    long write_chars = write(server->poll->fd, (request->request) + (server->current_send_reques),
-                             request->req_len - server->current_send_reques);
+    Request *request = server->getRequest();
+    long write_chars = write(server->getFd(), (request->getRequest()) + (server->getCurrentSendReques()),
+                             request->getReqLen() - server->getCurrentSendReques());
 
 
     if (write_chars < 0) {
 
         return REQUEST_SEND_WITH_ERROR;
     }
-    if (write_chars != request->req_len - server->current_send_reques)
-        spdlog::critical("ServerScheduler send_request {} from ", write_chars,
-                         request->req_len - server->current_send_reques);
-    server->current_send_reques += write_chars;
-    if (request->req_len == request->len_buf)
+    if (write_chars != request->getReqLen() - server->getCurrentSendReques())
+        spdlog::warn("ServerScheduler send_request {} from {} ", write_chars,
+                     (request->getReqLen() - server->getCurrentSendReques()));
+    server->setCurrentSendReques(server->getCurrentSendReques() + write_chars);
+    if (request->getReqLen() == request->getLenBuf())
         request->append_buf();
 
-    if (server->current_send_reques == request->req_len)
+    if (server->getCurrentSendReques() == request->getReqLen())
 
         return REQUEST_HAS_BEEN_SEND;
 
@@ -81,27 +81,27 @@ int ServerScheduler::send_request(Server *server) {
 
 
 int ServerScheduler::recv_response(Server *server) {
-    Response *response = server->response;
-    long read_chars = read(server->fd, (response->response) + (response->len_response),
-                           response->len_buf - response->len_response);
-        if (read_chars < 0) {
+    Response *response = server->getResponse();
+    long read_chars = read(server->getFd(), (response->getResponse()) + (response->getLenResponse()),
+                           response->getLenBuf() - response->getLenResponse());
+    if (read_chars < 0) {
         return RESPONSE_RECEIVE_WITH_ERROR;
     }
 
     if (read_chars == 0) {
-        response->status = END;
+        response->setStatus(END);
         return RESPONSE_RECEIVED;
     }
 
-    (response->len_response) += read_chars;
-    if (response->len_response == response->len_buf)
+    response->setLenResponse(response->getLenResponse() + read_chars);
+    if (response->getLenResponse() == response->getLenBuf())
         response->append_buf();
 
 
-    if (response->status == HEADERS) {
-        for (long i = 0; i < response->len_response - 1; ++i) {
-            if (response->response[i] == '\n' && response->response[i + 1] == '\r') {
-                response->status = BODY;
+    if (response->getStatus() == HEADERS) {
+        for (long i = 0; i < response->getLenResponse() - 1; ++i) {
+            if (response->getResponse()[i] == '\n' && response->getResponse()[i + 1] == '\r') {
+                response->setStatus(BODY);
                 response->resolve();
                 return RESPONSE_RECEIVED_HEADER;
             }

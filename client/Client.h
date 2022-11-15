@@ -18,7 +18,7 @@
 
 
 class Client {
-public:
+private:
     int fd = 0 ;
     int status = ACTIVE_CLIENT;
     sockaddr *addr = nullptr;
@@ -41,6 +41,38 @@ public:
     void receiving_mode_enable() const;
 
     void receiving_mode_disable() const;
+
+    int getFd() const;
+
+    void setFd(int fd);
+
+    int getStatus() const;
+
+    void setStatus(int status);
+
+    sockaddr *getAddr() const;
+
+    void setAddr(sockaddr *addr);
+
+    Server *getServer() const;
+
+    void setServer(Server *server);
+
+    Request *getRequest() const;
+
+    void setRequest(Request *request);
+
+    Response *getResponse() const;
+
+    void setResponse(Response *response);
+
+    pollfd *getPoll() const;
+
+    void setPoll(pollfd *poll);
+
+    long getCurrentRecvResponse() const;
+
+    void setCurrentRecvResponse(long currentRecvResponse);
 
     ~Client();
 };

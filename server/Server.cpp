@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-Server::Server(Client *c):request(c->request),client(c){}
+Server::Server(Client *c):request(c->getRequest()),client(c){}
 void Server::request_mode_enable() const {
     if (poll!= nullptr){
         if (!(poll->events & POLLOUT))
@@ -42,9 +42,75 @@ void Server::response_mode_disable() const {
     }
 }
 
+
+
 Server::~Server() {
     if(poll!= nullptr)
         free(poll);
+}
+
+int Server::getFd() const {
+    return fd;
+}
+
+void Server::setFd(int fd) {
+    Server::fd = fd;
+}
+
+int Server::getStatus() const {
+    return status;
+}
+
+void Server::setStatus(int status) {
+    Server::status = status;
+}
+
+pollfd *Server::getPoll() const {
+    return poll;
+}
+
+void Server::setPoll(pollfd *poll) {
+    Server::poll = poll;
+}
+
+Request *Server::getRequest() const {
+    return request;
+}
+
+void Server::setRequest(Request *request) {
+    Server::request = request;
+}
+
+Response *Server::getResponse() const {
+    return response;
+}
+
+void Server::setResponse(Response *response) {
+    Server::response = response;
+}
+
+Client *Server::getClient() const {
+    return client;
+}
+
+void Server::setClient(Client *client) {
+    Server::client = client;
+}
+
+sockaddr *Server::getAddr() const {
+    return addr;
+}
+
+void Server::setAddr(sockaddr *addr) {
+    Server::addr = addr;
+}
+
+int Server::getCurrentSendReques() const {
+    return current_send_reques;
+}
+
+void Server::setCurrentSendReques(int currentSendReques) {
+    current_send_reques = currentSendReques;
 }
 
 

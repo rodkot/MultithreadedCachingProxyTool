@@ -45,3 +45,51 @@ void Response::resolve() {
         code = HTTP_CODE_NO_OK;
     }
 }
+
+int Response::getType() const {
+    return type;
+}
+
+void Response::setType(int type) {
+    Response::type = type;
+}
+
+char *Response::getResponse() const {
+    return response;
+}
+
+void Response::setResponse(char *response) {
+    Response::response = response;
+}
+
+long Response::getLenResponse() const {
+    return len_response;
+}
+
+void Response::setLenResponse(long lenResponse) {
+    len_response = lenResponse;
+}
+
+int Response::getCode() const {
+    return code;
+}
+
+void Response::setCode(int code) {
+    Response::code = code;
+}
+
+int Response::getStatus() const {
+    return status;
+}
+
+void Response::setStatus(int status) {
+    Response::status = status;
+}
+
+long Response::getLenBuf() const {
+    return len_buf;
+}
+
+void Response::setLenBuf(long lenBuf) {
+    len_buf = lenBuf;
+}
