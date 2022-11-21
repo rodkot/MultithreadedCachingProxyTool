@@ -51,10 +51,9 @@ int ClientScheduler::send_response(Client *client) {
         case END:
         case CASHED_RESPONSE:
         {
-            long write_chars = write(client->getPoll()->fd, (response->getResponse()) + (client->getCurrentRecvResponse()),
-                                                    response->getLenResponse() - client->getCurrentRecvResponse());
+            long write_chars = write(client->getPoll()->fd, (response->getResponse()) + (client->getCurrentRecvResponse()),1);
             client->setCurrentRecvResponse(client->getCurrentRecvResponse()+write_chars);
-
+            sleep(1);
             if (write_chars<0){
                 return RESPONSE_RECEIVE_WITH_ERROR;
             }
@@ -63,7 +62,6 @@ int ClientScheduler::send_response(Client *client) {
                 if (response->getStatus() == END){
                     return RESPONSE_RECEIVED;
                 }
-
             }
             if( write_chars==0){
                 return RESPONSE_PAUSE_RECEIVE;

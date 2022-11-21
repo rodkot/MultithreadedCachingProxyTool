@@ -22,7 +22,8 @@ CashScheduler::CashScheduler() {
     std::string res_409 = "HTTP/1.0 409 Conflict\r\n\r\n";
     char *c_res_409 = new char[res_409.length() + 1];
     strcpy(c_res_409, res_409.c_str());
-    response_409 = new Response(c_res_409, res_409.length(), END, CASHED_RESPONSE);
+    response_409 = new Response(c_res_409,
+                                res_409.length(), END, CASHED_RESPONSE);
 };
 
 void CashScheduler::clean_unnecessary_cash() {
