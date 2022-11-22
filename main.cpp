@@ -4,11 +4,11 @@
 #include "connection/ConnectionScheduler.h"
 #include "client/ClientScheduler.h"
 #include <spdlog/spdlog.h>
-#include <signal.h>
+#include <csignal>
 #include "Configuration.h"
 
 bool active = true;
-ConnectionScheduler connectionScheduler("127.0.0.1", 8084);
+ConnectionScheduler connectionScheduler(PROXY_ADDR, PROXY_PORT);
 ClientScheduler clientScheduler;
 CashScheduler cashScheduler;
 PollScheduler pollScheduler(connectionScheduler, clientScheduler, cashScheduler);
@@ -39,13 +39,13 @@ int main() {
 
             act.sa_flags = SIGINT;
             act.sa_sigaction = &(eventCashHandler);
-            if (sigaction(SIGALRM, &act, NULL) == -1) {
+            if (sigaction(SIGALRM, &act, nullptr) == -1) {
                 perror("sigaction");
-                exit(EXIT_FAILURE);
+                break;
             }
-            if (sigaction(SIGTERM, &act, NULL) == -1) {
+            if (sigaction(SIGTERM, &act, nullptr) == -1) {
                 perror("sigaction");
-                exit(EXIT_FAILURE);
+                break;
             }
             while (active) {
                 pollScheduler.builder();
@@ -56,4 +56,10 @@ int main() {
             spdlog::critical("PROXY FAILED START");
         }
     }
+
+    pollScheduler.destroy();
+    pollScheduler.builder();
+    cashScheduler.destroy();
+    connectionScheduler.disconnect();
+    return EXIT_SUCCESS;
 }

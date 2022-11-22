@@ -23,7 +23,7 @@
 
 class Response {
 private:
-    int type;
+    int type{};
 
     char *response;
     long len_response = 0;

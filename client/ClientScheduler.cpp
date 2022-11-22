@@ -44,11 +44,10 @@ int ClientScheduler::check_valid_request(Request *request) {
 
 int ClientScheduler::send_response(Client *client) {
     Response* response = client->getResponse();
-    Server* server = client->getServer();
+ //   Server* server = client->getServer();
     switch (response->getType()) {
-        case DURING_CASH_RESPONSE:
         case NO_CASH_RESPONSE:
-        case END:
+        case DURING_CASH_RESPONSE:
         case CASHED_RESPONSE:
         {
             long write_chars = write(client->getPoll()->fd, (response->getResponse()) + (client->getCurrentRecvResponse()),

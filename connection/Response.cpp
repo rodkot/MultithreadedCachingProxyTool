@@ -5,9 +5,7 @@
 #include <cstdlib>
 #include "Response.h"
 #include "../Configuration.h"
-#include <signal.h>
-#include <cerrno>
-
+#include <csignal>
 
 Response::Response() {
     len_buf = BUF_STEP_SIZE_RESPONSE;
@@ -31,7 +29,6 @@ void Response::append_buf() {
 }
 
 void Response::resolve() {
-    char *http_version = response;
     int len_http_version = 0;
     for (; response[len_http_version] != ' '; len_http_version++) {}
     char *http_code = response + len_http_version + 1;

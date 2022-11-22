@@ -37,7 +37,7 @@ private:
 public:
     PollScheduler(ConnectionScheduler &, ClientScheduler &, CashScheduler &);
 
-    int builder();
+    void builder();
 
     int executor();
 

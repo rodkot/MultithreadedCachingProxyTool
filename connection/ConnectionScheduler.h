@@ -12,17 +12,23 @@
 #define OPEN_CONNECTION_FAILED -1
 #define OPEN_CONNECTION_SUCCESS 1
 
+#define CONNECTION_SERVER_FAILED -1
+#define CONNECTION_SERVER_SUCCESS 1
+
 #define CLIENT_CONNECTION_FAILED -1
 #define CLIENT_CONNECTION_SUCCESS 1
 
 class ConnectionScheduler {
 private:
     int fd_connect{};
+    struct sockaddr* proxy_sockaddr = nullptr;
     char *address;
     int port;
 public:
 
     ConnectionScheduler(char *address, int port);
+
+    int connect_to_server(Server* server);
 
     int listen_socket();
 

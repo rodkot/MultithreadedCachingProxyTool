@@ -5,7 +5,7 @@
 #include "Request.h"
 #include "../Configuration.h"
 #include <malloc.h>
-#include <signal.h>
+#include <csignal>
 
 Request::Request() {
     len_buf = BUF_STEP_SIZE_REQUEST;

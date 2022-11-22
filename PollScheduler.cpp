@@ -17,7 +17,7 @@ PollScheduler::PollScheduler(ConnectionScheduler &connectionScheduler, ClientSch
 
 }
 
-int PollScheduler::builder() {
+void PollScheduler::builder() {
     polls[0] = *connection;
     p_polls[0] = connection;
 
@@ -109,7 +109,6 @@ int PollScheduler::builder() {
         (polls[i + clients.size() + 2]) = *(servers[i]->getPoll());
         (p_polls[i + clients.size() + 2]) = (servers[i]->getPoll());
     }
-    return 0;
 };
 
 int PollScheduler::open_connect() {
@@ -187,7 +186,7 @@ int PollScheduler::addServerConnectionHandler(Client *client) {
                                  client->get_name_client());
                     auto *server = new Server(client);
                     client->setServer(server);
-                    switch (ServerScheduler::connect_to_server(server)) {
+                    switch (connectionScheduler.connect_to_server(server)) {
                         case CONNECTION_SERVER_FAILED: {
                             spdlog::error("addServerConnectionHandler CONNECTION_SERVER_FAILED for request client {}",
                                           client->get_name_client());
@@ -225,7 +224,6 @@ int PollScheduler::requestClientHandler(Client *client) {
             client->setStatus(STOP_FAILED_CLIENT);
             spdlog::error("requestClientHandler REQUEST_RECV_FAILED client {}", client->get_name_client());
             return REQUEST_RECV_FAILED;
-
     }
 }
 
