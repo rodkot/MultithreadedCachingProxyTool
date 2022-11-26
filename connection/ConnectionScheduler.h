@@ -24,6 +24,7 @@ private:
     struct sockaddr* proxy_sockaddr = nullptr;
     char *address;
     int port;
+
 public:
 
     ConnectionScheduler(char *address, int port);

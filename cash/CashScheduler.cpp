@@ -43,8 +43,6 @@ void CashScheduler::clean_unnecessary_cash() {
             iter_cash = cash.insert_or_assign(iter_cash, resource, record);
             ++iter_cash;
         }
-
-        //  cash["dd"]=(std::pair(resource, record));
     }
 }
 

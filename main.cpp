@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 #include <csignal>
 #include "Configuration.h"
+//systemd
 
 bool active = true;
 ConnectionScheduler connectionScheduler(PROXY_ADDR, PROXY_PORT);
@@ -54,6 +55,7 @@ int main() {
         }
         case OPEN_CONNECTION_FAILED: {
             spdlog::critical("PROXY FAILED START");
+            break;
         }
     }
 

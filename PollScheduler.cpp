@@ -12,12 +12,12 @@
 PollScheduler::PollScheduler(ConnectionScheduler &connectionScheduler, ClientScheduler &clientScheduler1,
                              CashScheduler &cashScheduler)
         : connectionScheduler(connectionScheduler), clientScheduler(clientScheduler1), cashScheduler(cashScheduler) {
-    polls = (pollfd *) realloc(polls, (2 + 2 * MAX_CLIENT) * sizeof(pollfd));
-    p_polls = (pollfd **) realloc(p_polls, (2 + 2 * MAX_CLIENT) * sizeof(pollfd *));
-
 }
 
 void PollScheduler::builder() {
+    polls = (pollfd *) realloc(polls, (2 + clients.size() + servers.size()) * sizeof(pollfd));
+    p_polls = (pollfd **) realloc(p_polls,  (2 + clients.size() + servers.size()) * sizeof(pollfd *));
+
     polls[0] = *connection;
     p_polls[0] = connection;
 
