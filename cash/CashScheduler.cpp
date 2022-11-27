@@ -30,7 +30,7 @@ void CashScheduler::clean_unnecessary_cash() {
          iter_cash != cash.end();) {
         CashRecord record = (*iter_cash).second;
         std::string resource = (*iter_cash).first;
-        if ((record.count_active == 0 && record.count == 0)) {
+        if ((record.count_active == 0 && record.count == 0 && record.response->getType()==CASHED_RESPONSE)) {
             spdlog::warn("CashScheduler clean_unnecessary_cash remove cash {}", resource);
             delete record.response;
             iter_cash = cash.erase(iter_cash);
@@ -43,13 +43,12 @@ void CashScheduler::clean_unnecessary_cash() {
             iter_cash = cash.insert_or_assign(iter_cash, resource, record);
             ++iter_cash;
         }
-
-        //  cash["dd"]=(std::pair(resource, record));
     }
 }
 
 void CashScheduler::add_record(Request *request, Response *response) {
-    response->setType(CASHED_RESPONSE);
+  //  response->setType(CASHED_RESPONSE);
+    pthread_mutex_lock(&mutex);
     CashRecord cashRecord(response);
     std::string host(request->getHost(), request->getHostLen());
     std::string resource(request->getResource(), request->getResourceLen());
@@ -57,23 +56,28 @@ void CashScheduler::add_record(Request *request, Response *response) {
     cashRecord.connect_client();
     spdlog::info("CashScheduler CASHED_RESPONSE {}", full);
     cash.insert(std::pair(full, cashRecord));
+    pthread_mutex_unlock(&mutex);
 }
 
-int CashScheduler::connect_to_record(Request *request,Client* client) {
+int CashScheduler::connect_to_record(Request *request,Response** pResponse) {
+    pthread_mutex_lock(&mutex);
     std::string host(request->getHost(), request->getHostLen());
     std::string resource(request->getResource(), request->getResourceLen());
     std::string full = host + resource;
     auto iter_record = cash.find(full);
     if (iter_record != cash.end() && iter_record->second.response->getStatus() != FAIL) {
-        client->setResponse((*iter_record).second.response);
+       *pResponse = (*iter_record).second.response;
         (*iter_record).second.connect_client();
+        pthread_mutex_unlock(&mutex);
         return HAVE_RECORD;
     } else {
+        pthread_mutex_unlock(&mutex);
         return NO_RECORD;
     }
 }
 
 void CashScheduler::disconnect_to_record(Request *request) {
+    pthread_mutex_lock(&mutex);
     std::string host(request->getHost(), request->getHostLen());
     std::string resource(request->getResource(), request->getResourceLen());
     std::string full = host + resource;
@@ -81,9 +85,11 @@ void CashScheduler::disconnect_to_record(Request *request) {
     if (iter_record != cash.end()) {
         (*iter_record).second.disconnect_client();
     }
+    pthread_mutex_unlock(&mutex);
 }
 
 void CashScheduler::destroy() {
+    pthread_mutex_lock(&mutex);
     for (auto iter_cash = cash.begin();
          iter_cash != cash.end();) {
         CashRecord record = (*iter_cash).second;
@@ -92,11 +98,14 @@ void CashScheduler::destroy() {
         delete record.response;
         iter_cash = cash.erase(iter_cash);
     }
+    pthread_mutex_unlock(&mutex);
 }
 
 CashScheduler::~CashScheduler() {
+    pthread_mutex_lock(&mutex);
     delete response_405;
     delete response_409;
     delete response_505;
+    pthread_mutex_unlock(&mutex);
 }
 

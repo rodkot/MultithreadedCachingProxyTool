@@ -35,10 +35,10 @@ int ConnectionScheduler::listen_socket() {
     return fd;
 }
 
-int ConnectionScheduler::connect_to_server(Server *server) {
+int ConnectionScheduler::connect_to_server(Server *server,Request* request) {
     struct addrinfo hints, *res, *result;
 
-    char *url = server->getRequest()->getHost();
+    char *url = request->getHost();
 
     int port_server = 80;
     char host_name[100];

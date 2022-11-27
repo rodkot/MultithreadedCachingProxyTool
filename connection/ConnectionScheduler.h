@@ -21,14 +21,14 @@
 class ConnectionScheduler {
 private:
     int fd_connect{};
-    struct sockaddr* proxy_sockaddr = nullptr;
+    struct sockaddr *proxy_sockaddr = nullptr;
     char *address;
     int port;
 public:
 
     ConnectionScheduler(char *address, int port);
 
-    int connect_to_server(Server* server);
+    int connect_to_server(Server *server, Request *request);
 
     int listen_socket();
 

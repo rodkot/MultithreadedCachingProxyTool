@@ -16,8 +16,8 @@
 
 class ServerScheduler {
 public:
-    static int send_request(Server* server);
-    static int recv_response(Server* server);
+    static int send_request(Server* server,Request* request);
+    static int recv_response(Server* server,Response* response);
 };
 
 

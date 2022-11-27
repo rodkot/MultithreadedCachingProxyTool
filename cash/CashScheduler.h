@@ -19,12 +19,13 @@
 class CashScheduler {
 public:
     int cash_event_fd[2]{};
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
     Response *response_505;
     Response *response_405;
     Response *response_409;
     std::unordered_map<std::string, CashRecord> cash;
 
-    int connect_to_record(Request *request, Client *client);
+    int connect_to_record(Request *request, Response **pResponse);
 
     void add_record(Request *request, Response *response);
 

@@ -8,7 +8,6 @@
 #include <arpa/inet.h>
 
 Client::Client() {
-    request = new Request();
 }
 
 std::string Client::get_name_client() const {
@@ -42,10 +41,6 @@ Client::~Client() {
         free(addr);
     if (poll != nullptr)
         free(poll);
-    if (request != nullptr) {
-        delete (request);
-    }
-
 }
 
 int Client::getFd() const {
@@ -72,29 +67,29 @@ void Client::setAddr(sockaddr *addr) {
     Client::addr = addr;
 }
 
-Server *Client::getServer() const {
-    return server;
-}
+//Server *Client::getServer() const {
+//    return server;
+//}
+//
+//void Client::setServer(Server *server) {
+//    Client::server = server;
+//}
+//
+//Request *Client::getRequest() const {
+//    return request;
+//}
+//
+//void Client::setRequest(Request *request) {
+//    Client::request = request;
+//}
 
-void Client::setServer(Server *server) {
-    Client::server = server;
-}
-
-Request *Client::getRequest() const {
-    return request;
-}
-
-void Client::setRequest(Request *request) {
-    Client::request = request;
-}
-
-Response *Client::getResponse() const {
-    return response;
-}
-
-void Client::setResponse(Response *response) {
-    Client::response = response;
-}
+//Response *Client::getResponse() const {
+//    return response;
+//}
+//
+//void Client::setResponse(Response *response) {
+//    Client::response = response;
+//}
 
 pollfd *Client::getPoll() const {
     return poll;

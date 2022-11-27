@@ -6,8 +6,11 @@
 #include "Response.h"
 #include "../Configuration.h"
 #include <csignal>
+#include <pthread.h>
 
 Response::Response() {
+    pthreadMutex=(pthread_mutex_t*) calloc(1,sizeof(pthread_mutex_t));
+    pthread_mutex_init(pthreadMutex, nullptr);
     len_buf = BUF_STEP_SIZE_RESPONSE;
     response = (char *) calloc(len_buf, sizeof(char));
     if (response==nullptr){
@@ -17,6 +20,8 @@ Response::Response() {
 
 Response::Response(char *res, long res_len, int status, int type) : response(res), len_response(res_len),
                                                                     status(status), type(type) {
+    pthreadMutex=(pthread_mutex_t*) calloc(1,sizeof(pthread_mutex_t));
+    pthread_mutex_init(pthreadMutex, nullptr);
 
 }
 
@@ -89,4 +94,12 @@ long Response::getLenBuf() const {
 
 void Response::setLenBuf(long lenBuf) {
     len_buf = lenBuf;
+}
+Response::~Response() {
+    delete response;
+    pthread_mutex_destroy(pthreadMutex);
+    delete pthreadMutex;
+}
+pthread_mutex_t *Response::getPthreadMutex() const {
+    return pthreadMutex;
 }

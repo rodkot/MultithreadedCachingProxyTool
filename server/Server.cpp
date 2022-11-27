@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-Server::Server(Client *c):request(c->getRequest()),client(c){}
+Server::Server(){}
 void Server::request_mode_enable() const {
     if (poll!= nullptr){
         if (!(poll->events & POLLOUT))
@@ -73,29 +73,29 @@ void Server::setPoll(pollfd *poll) {
     Server::poll = poll;
 }
 
-Request *Server::getRequest() const {
-    return request;
-}
+//Request *Server::getRequest() const {
+//    return request;
+//}
+//
+//void Server::setRequest(Request *request) {
+//    Server::request = request;
+//}
 
-void Server::setRequest(Request *request) {
-    Server::request = request;
-}
+//Response *Server::getResponse() const {
+//    return response;
+//}
+//
+//void Server::setResponse(Response *response) {
+//    Server::response = response;
+//}
 
-Response *Server::getResponse() const {
-    return response;
-}
-
-void Server::setResponse(Response *response) {
-    Server::response = response;
-}
-
-Client *Server::getClient() const {
-    return client;
-}
-
-void Server::setClient(Client *client) {
-    Server::client = client;
-}
+//Client *Server::getClient() const {
+//    return client;
+//}
+//
+//void Server::setClient(Client *client) {
+//    Server::client = client;
+//}
 
 sockaddr *Server::getAddr() const {
     return addr;

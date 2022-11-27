@@ -22,9 +22,9 @@ private:
     int fd = 0 ;
     int status = ACTIVE_CLIENT;
     sockaddr *addr = nullptr;
-    Server *server = nullptr;
-    Request *request = nullptr;
-    Response *response = nullptr;
+   //Server *server = nullptr;
+    //Request *request = nullptr;
+    //Response *response = nullptr;
     pollfd *poll = nullptr;
 
     long current_recv_response = 0;
@@ -54,17 +54,17 @@ public:
 
     void setAddr(sockaddr *addr);
 
-    Server *getServer() const;
+//    Server *getServer() const;
+//
+//    void setServer(Server *server);
 
-    void setServer(Server *server);
+//    Request *getRequest() const;
+//
+//    void setRequest(Request *request);
 
-    Request *getRequest() const;
-
-    void setRequest(Request *request);
-
-    Response *getResponse() const;
-
-    void setResponse(Response *response);
+//    Response *getResponse() const;
+//
+//    void setResponse(Response *response);
 
     pollfd *getPoll() const;
 

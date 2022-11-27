@@ -23,16 +23,16 @@ private:
     int fd{};
     int status = ACTIVE_SERVER;
     pollfd *poll = nullptr;
-    Request *request = nullptr;
-    Response *response = nullptr;
-    Client *client = nullptr;
+    // Request *request = nullptr;
+    // Response *response = nullptr;
+    //  Client *client = nullptr;
 
     sockaddr *addr = nullptr;
     int current_send_reques = 0;
 
 
 public:
-    explicit Server(Client *c);
+    explicit Server();
 
     std::string get_name_server() const;
 
@@ -56,17 +56,17 @@ public:
 
     void setPoll(pollfd *poll);
 
-    Request *getRequest() const;
+//    Request *getRequest() const;
+//
+//    void setRequest(Request *request);
 
-    void setRequest(Request *request);
+//    Response *getResponse() const;
+//
+//    void setResponse(Response *response);
 
-    Response *getResponse() const;
+    // Client *getClient() const;
 
-    void setResponse(Response *response);
-
-    Client *getClient() const;
-
-    void setClient(Client *client);
+    //  void setClient(Client *client);
 
     sockaddr *getAddr() const;
 

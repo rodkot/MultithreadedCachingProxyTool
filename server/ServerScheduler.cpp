@@ -7,8 +7,7 @@
 #include <spdlog/spdlog.h>
 
 
-int ServerScheduler::send_request(Server *server) {
-    Request *request = server->getRequest();
+int ServerScheduler::send_request(Server *server,Request* request) {
     long write_chars = write(server->getFd(), (request->getRequest()) + (server->getCurrentSendReques()),
                              request->getReqLen() - server->getCurrentSendReques());
 
@@ -34,8 +33,8 @@ int ServerScheduler::send_request(Server *server) {
 }
 
 
-int ServerScheduler::recv_response(Server *server) {
-    Response *response = server->getResponse();
+int ServerScheduler::recv_response(Server *server,Response *response) {
+   // Response *response = server->getResponse();
     long read_chars = read(server->getFd(), (response->getResponse()) + (response->getLenResponse()),
                            response->getLenBuf() - response->getLenResponse());
     if (read_chars < 0) {

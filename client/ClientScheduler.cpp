@@ -7,8 +7,7 @@
 
 ClientScheduler::ClientScheduler() = default;
 
-int ClientScheduler::forming_request(Client *client) {
-     Request * request = client->getRequest();
+int ClientScheduler::forming_request(Client *client,Request *request) {
     long read_chars = (read(client->getPoll()->fd, (request->getRequest()) + (request->getReqLen()),
                                          request->getLenBuf() - request->getReqLen()));
     if (read_chars < 0) {
@@ -42,9 +41,7 @@ int ClientScheduler::check_valid_request(Request *request) {
     }
 }
 
-int ClientScheduler::send_response(Client *client) {
-    Response* response = client->getResponse();
- //   Server* server = client->getServer();
+int ClientScheduler::send_response(Client *client,Response *response) {
     switch (response->getType()) {
         case NO_CASH_RESPONSE:
         case DURING_CASH_RESPONSE:
@@ -54,7 +51,7 @@ int ClientScheduler::send_response(Client *client) {
                                                     response->getLenResponse() - client->getCurrentRecvResponse());
             client->setCurrentRecvResponse(client->getCurrentRecvResponse()+write_chars);
 
-            if (write_chars<0){
+            if (write_chars<0 || response->getStatus() == FAIL){
                 return RESPONSE_RECEIVE_WITH_ERROR;
             }
             if (response->getLenResponse()
@@ -67,6 +64,7 @@ int ClientScheduler::send_response(Client *client) {
             if( write_chars==0){
                 return RESPONSE_PAUSE_RECEIVE;
             }
+
             return RESPONSE_PROCESS_RECEIVE;
         }
     }

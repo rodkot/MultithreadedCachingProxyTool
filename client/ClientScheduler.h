@@ -26,11 +26,11 @@ class ClientScheduler {
 public:
     ClientScheduler();
 
-    static int forming_request(Client *);
+    static int forming_request(Client *,Request*);
 
     static int check_valid_request(Request *request);
 
-    static int send_response(Client *client);
+    static int send_response(Client *client,Response *response);
 };
 
 

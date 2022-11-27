@@ -5,11 +5,12 @@
 #ifndef PROXY_RESPONSE_H
 #define PROXY_RESPONSE_H
 
+#include <pthread.h>
+
 
 #define DURING_CASH_RESPONSE 10
 #define CASHED_RESPONSE 11
 #define NO_CASH_RESPONSE 12
-
 
 
 #define HEADERS 1
@@ -31,14 +32,22 @@ private:
     int code = 0;
     int status = HEADERS;
 
+    pthread_mutex_t *pthreadMutex;
+
     long len_buf = 0;
 
 public:
     Response();
-    Response(char* res, long res_len,int status,int type);
+
+    Response(char *res, long res_len, int status, int type);
+
+    ~Response();
 
     void append_buf();
+
     void resolve();
+
+    pthread_mutex_t *getPthreadMutex() const;
 
     int getType() const;
 
