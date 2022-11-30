@@ -172,6 +172,8 @@ int main() {
     if (pthread_create(&tid_signal_thread, nullptr, signal_thread, nullptr) != 0)
         stop_proxy();
 
+    spdlog::info("PROXY START");
+
     while (true) {
         switch (poll(polls, 3, TIME_OUT_POLL)) {
             case 0:
